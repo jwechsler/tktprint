@@ -54,8 +54,9 @@ bundle exec bin/delayed_job start
   `BOCA_PRINTER_PORT` (host port on 127.0.0.1, default 9100).
 - Fonts: tktprint's `<RTF3..6>` text is Verdana. Without it the printer uses DejaVu Sans
   (slightly wider). Put Verdana files in `tmp/fonts/` or set `BOCA_FONT_DIR` to a folder
-  holding them (e.g. `/System/Library/Fonts/Supplemental` on macOS); Windows, macOS and
-  msttcorefonts file names all work. `docker compose logs boca_printer` shows the mapping
+  holding them; Windows, macOS and msttcorefonts file names all work. On macOS, copy them:
+  `cp /System/Library/Fonts/Supplemental/Verdana*.ttf tmp/fonts/` (Docker Desktop can't
+  mount `/System`). `docker compose logs boca_printer` shows the mapping
   (`TrueType fonts: RTF3=Verdana.ttf ...`). Never commit the font files.
 - Send raw FGL by hand: `printf '<RC10,10><F3>HELLO<p>' | nc localhost 9100`.
 - `MOCK_PRINTING` and the `PRINT_*` variables in docker-compose.yml are not read by the app.

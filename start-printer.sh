@@ -165,10 +165,17 @@ fi
 if [ "$DETACHED" = true ]; then
     echo "Starting tktprint services in background..."
     docker compose up -d --build
+    UP_STATUS=$?
 
     # Restore override file if it was renamed
     if [ "$OVERRIDE_RENAMED" = true ]; then
         mv docker-compose.override.yml.disabled docker-compose.override.yml
+    fi
+
+    if [ $UP_STATUS -ne 0 ]; then
+        echo ""
+        echo "Error: docker compose up failed (exit $UP_STATUS)"
+        exit $UP_STATUS
     fi
 
     echo ""

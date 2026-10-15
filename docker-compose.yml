@@ -124,7 +124,6 @@ services:
       - test
     build:
       context: https://github.com/jwechsler/fgl-pdf.git#${FGL_PDF_REF:-main}
-    image: fgl-pdf:${FGL_PDF_REF:-main}
     container_name: tktprint_printer
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     command: ["fgl-printer", "--out", "/tickets", "--dpi", "300"]
