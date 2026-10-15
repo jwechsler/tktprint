@@ -33,7 +33,11 @@ services:
       - PRINT_READ_TIMEOUT=${PRINT_READ_TIMEOUT:-30}
       - PRINT_EMULATOR_DELAY=${PRINT_EMULATOR_DELAY:-0.5}
     depends_on:
-      - db_setup
+      db_setup:
+        condition: service_started
+      boca_printer:
+        condition: service_started
+        required: false
     networks:
       - tktprint_network
       - site_default
@@ -71,8 +75,13 @@ services:
       - PRINT_READ_TIMEOUT=${PRINT_READ_TIMEOUT:-30}
       - PRINT_EMULATOR_DELAY=${PRINT_EMULATOR_DELAY:-0.5}
     depends_on:
-      - db_setup
-      - web
+      db_setup:
+        condition: service_started
+      web:
+        condition: service_started
+      boca_printer:
+        condition: service_started
+        required: false
     networks:
       - tktprint_network
       - site_default
@@ -106,25 +115,27 @@ services:
     networks:
       - tktprint_network
 
-  # Printer emulator for testing
-  printer_emulator:
+  # Virtual Boca printer for test mode (./start-printer.sh -m test).
+  # Listens on 9100 like a real Boca and renders every ticket the app prints
+  # to a sequentially numbered PDF (plus the raw .fgl and an index.jsonl line)
+  # in ./tmp/printed_tickets. See https://github.com/jwechsler/fgl-pdf
+  boca_printer:
     profiles:
       - test
-    image: alpine:latest
+    build:
+      context: https://github.com/jwechsler/fgl-pdf.git#${FGL_PDF_REF:-main}
+    image: fgl-pdf:${FGL_PDF_REF:-main}
     container_name: tktprint_printer
-    command: >
-      sh -c "
-        apk add --no-cache netcat-openbsd &&
-        echo 'Printer emulator listening on port 9100...' &&
-        while true; do
-          echo 'Waiting for print job...' &&
-          nc -l -p 9100 -v | while read data; do
-            echo \"Received: $$data\"
-          done
-        done
-      "
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: ["fgl-printer", "--out", "/tickets", "--dpi", "300"]
+    environment:
+      - FGL_PDF_LENGTH_IN=${FGL_PDF_LENGTH_IN:-5.5}
+      - FGL_PDF_ANNOTATE=${FGL_PDF_ANNOTATE:-false}
+      - FGL_PDF_DEBUG_GRID=${FGL_PDF_DEBUG_GRID:-false}
+    volumes:
+      - ./tmp/printed_tickets:/tickets
     ports:
-      - "9100:9100"
+      - "127.0.0.1:${BOCA_PRINTER_PORT:-9100}:9100"
     networks:
       - tktprint_network
 

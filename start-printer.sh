@@ -108,6 +108,8 @@ cat > .env << EOF
 RAILS_ENV=$RAILS_ENV
 PRINTER_CONFIG=$PRINTER_CONFIG
 SECRET_KEY_BASE=$SECRET_KEY_BASE
+HOST_UID=$(id -u)
+HOST_GID=$(id -g)
 EOF
 
 # Copy the appropriate printer configuration
@@ -139,7 +141,8 @@ echo ""
 # Set COMPOSE_PROFILES based on mode
 if [ "$MODE" = "test" ]; then
     export COMPOSE_PROFILES=test
-    echo "Starting services with printer emulator..."
+    mkdir -p tmp/printed_tickets
+    echo "Starting services with virtual Boca printer (PDFs in tmp/printed_tickets/)..."
 else
     export COMPOSE_PROFILES=""
     echo "Starting services for live printer (no emulator)..."
@@ -177,7 +180,8 @@ if [ "$DETACHED" = true ]; then
     echo "  ./show-tktprint-logs.sh -f     # Follow web logs"
     echo "  docker compose logs -f worker  # Follow worker logs"
     if [ "$MODE" = "test" ]; then
-        echo "  docker compose logs -f printer_emulator  # Follow printer logs"
+        echo "  docker compose logs -f boca_printer  # Follow virtual printer logs"
+        echo "  ls tmp/printed_tickets/              # Printed tickets as PDFs"
     fi
     echo ""
     echo "To stop services, use:"

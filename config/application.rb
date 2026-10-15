@@ -44,8 +44,10 @@ module Tktprint2
 
     if File.exist?(printer_config_file)
       printer_config = YAML.load_file(printer_config_file)
-      env_config = printer_config[Rails.env] || printer_config['production']
-      $PRINTER = [env_config['ticket_printer_1']] if env_config
+      # Accept both env-keyed files (development:/test:/production:) and the flat
+      # files that start-printer.sh copies into place (ticket_printer_1: at top level).
+      env_config = printer_config[Rails.env] || printer_config['production'] || printer_config
+      $PRINTER = [env_config['ticket_printer_1']] if env_config && env_config['ticket_printer_1']
     end
 
     if File.exist?(auth_config_file)

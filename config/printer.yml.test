@@ -1,6 +1,7 @@
 # Test printer configuration
-# Points to printer emulator on localhost
+# Points to the virtual Boca printer container (boca_printer), which renders
+# every ticket to a numbered PDF in tmp/printed_tickets/.
 ticket_printer_1:
-  address: "localhost"
+  address: "boca_printer"
   port: 9100
-  logo: "public/logo.bmp"
+  logo: "public/logo.bmp.example"

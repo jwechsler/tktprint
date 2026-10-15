@@ -127,6 +127,9 @@ class Printer
       return false
     end
 
+    # Test mode (localhost): build nothing, open no socket
+    return true if @address == 'localhost'
+
     unless @address.blank?
       TCPSocket.open(@address, @port) do |socket|
         @socket = socket
