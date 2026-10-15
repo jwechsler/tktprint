@@ -51,6 +51,9 @@ bundle exec bin/delayed_job start
   rewrites `.env`): `FGL_PDF_REF` (git ref of fgl-pdf to build, default `main`),
   `FGL_PDF_ANNOTATE=true` (print rendering warnings on each PDF), `FGL_PDF_DEBUG_GRID=true`
   (50-dot grid overlay), `FGL_PDF_LENGTH_IN` (ticket length, default 5.5),
+  `FGL_PDF_FEED_DPI` (dots per inch along the ticket, default 307.1: the Boca 300 DPI Mini's
+  self-test reports PRINT LENGTH=1689 on the 2" x 5.5" stock, so the stub name at column 1665
+  prints in full),
   `BOCA_PRINTER_PORT` (host port on 127.0.0.1, default 9100).
 - Fonts: tktprint's `<RTF3..6>` text is Verdana. Without it the printer uses DejaVu Sans
   (slightly wider). Put Verdana files in `tmp/fonts/` or set `BOCA_FONT_DIR` to a folder

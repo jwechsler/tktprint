@@ -129,6 +129,8 @@ services:
     command: ["fgl-printer", "--out", "/tickets", "--dpi", "300"]
     environment:
       - FGL_PDF_LENGTH_IN=${FGL_PDF_LENGTH_IN:-5.5}
+      # Theater Wit's Boca self-test: PRINT LENGTH=1689 dots on 5.5" stock (1689 / 5.5)
+      - FGL_PDF_FEED_DPI=${FGL_PDF_FEED_DPI:-307.1}
       - FGL_PDF_ANNOTATE=${FGL_PDF_ANNOTATE:-false}
       - FGL_PDF_DEBUG_GRID=${FGL_PDF_DEBUG_GRID:-false}
       # Real Verdana for <RTF3..6> text; the printer falls back to DejaVu Sans
