@@ -1,0 +1,55 @@
+# Production-like configuration for Raspberry Pi deployment
+version: '3.8'
+
+services:
+  web:
+    image: tktprint:production
+    container_name: tktprint_web_prod
+    restart: unless-stopped
+    command: bundle exec rails server -b 0.0.0.0 -e production
+    ports:
+      - "3000:3000"
+    environment:
+      - RAILS_ENV=production
+      - RAILS_SERVE_STATIC_FILES=true
+      - RAILS_LOG_TO_STDOUT=true
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - WEB_CONCURRENCY=2
+      - RAILS_MAX_THREADS=5
+    volumes:
+      - ./db:/app/db
+      - ./log:/app/log
+      - ./config/authorization.yml:/app/config/authorization.yml:ro
+      - ./config/printer.yml:/app/config/printer.yml:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - tktprint_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/orders"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    image: tktprint:production
+    container_name: tktprint_worker_prod
+    restart: unless-stopped
+    command: bundle exec bin/delayed_job start
+    environment:
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+    volumes:
+      - ./db:/app/db
+      - ./log:/app/log
+      - ./config/authorization.yml:/app/config/authorization.yml:ro
+      - ./config/printer.yml:/app/config/printer.yml:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - web
+    networks:
+      - tktprint_network
+
+networks:
+  tktprint_network:
+    driver: bridge

@@ -1,0 +1,38 @@
+# Development overrides for docker-compose
+# This file is automatically loaded by docker-compose
+
+services:
+  web:
+    # Development-specific settings
+    environment:
+      - RAILS_ENV=development
+      - RAILS_SERVE_STATIC_FILES=true
+      - RAILS_LOG_TO_STDOUT=true
+    # Enable debugging
+    stdin_open: true
+    tty: true
+    # Mount local code for hot reloading
+    volumes:
+      - .:/app:cached
+      - bundle_cache:/usr/local/bundle
+      - ./log:/app/log
+      - ./tmp:/app/tmp
+
+  worker:
+    # Run in foreground for development, wait for DB first
+    command: >
+      bash -c "
+        echo 'Waiting for database setup to complete...' &&
+        while [ ! -f /tmp/db_ready ]; do sleep 1; done &&
+        echo 'Database ready, starting Delayed Job worker...' &&
+        bundle exec bin/delayed_job run
+      "
+    volumes:
+      - .:/app:cached
+      - bundle_cache:/usr/local/bundle
+      - db_ready:/tmp
+      - ./log:/app/log
+      - ./tmp:/app/tmp
+    environment:
+      - RAILS_ENV=development
+      - RAILS_LOG_TO_STDOUT=true

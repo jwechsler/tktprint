@@ -1,0 +1,14 @@
+# Example authorization configuration
+# Copy this file to authorization.yml and replace with your actual credentials
+
+production:
+  username: "your_username"  # Replace with your desired username
+  password: "your_password"  # Replace with your desired password
+
+development:
+  username: "dev_user"
+  password: "dev_password"
+
+test:
+  username: "test_user"
+  password: "test_password"

@@ -1,0 +1,7 @@
+# config/printer.yml
+ticket_printer_1:
+  # Use localhost for testing
+  address: "localhost"
+  port: 9100
+  logo: "public/logo.bmp"
+  

@@ -1,0 +1,7 @@
+# Development printer configuration
+# Points to localhost for development testing
+# development printer
+ticket_printer_1:
+  address: "localhost"
+  port: 9100
+  logo: "public/logo.bmp"

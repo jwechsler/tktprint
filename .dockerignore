@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Bundler
+.bundle
+vendor/bundle
+
+# Logs and temp files
+log/*
+tmp/*
+!log/.keep
+!tmp/.keep
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+
+# Database
+db/*.sqlite3
+db/*.sqlite3-journal
+
+# Config files (will be created by init script)
+config/authorization.yml
+config/printer.yml
+
+# Development files
+.ruby-version
+.ruby-gemset
+.rvmrc
+
+# Test files
+test/
+spec/
+coverage/
+
+# Documentation
+README.rdoc
+doc/
+
+# IDE files
+.idea/
+.vscode/

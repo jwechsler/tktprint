@@ -1,0 +1,139 @@
+services:
+  # Rails application
+  web:
+    build: .
+    container_name: tktprint_web
+    command: >
+      bash -c "
+        echo 'Waiting for database setup to complete...' &&
+        while [ ! -f /tmp/db_ready ]; do sleep 1; done &&
+        echo 'Database ready, starting Rails server...' &&
+        rm -f /app/tmp/pids/server.pid &&
+        bundle exec rails server -b 0.0.0.0 -e $${RAILS_ENV:-development}
+      "
+    volumes:
+      - .:/app:cached
+      - bundle_cache:/usr/local/bundle
+      - db_ready:/tmp
+      - ./config/printer.yml.${PRINTER_CONFIG:-test}:/app/config/printer.yml:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3000:3000"
+    environment:
+      - RAILS_ENV=${RAILS_ENV:-development}
+      - DATABASE_URL=sqlite3:db/${RAILS_ENV:-development}.sqlite3
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-}
+      - RAILS_LOG_TO_STDOUT=true
+      - MOCK_PRINTING=${MOCK_PRINTING:-true}
+      - PRINT_MAX_RETRIES=${PRINT_MAX_RETRIES:-3}
+      - PRINT_RETRY_DELAY=${PRINT_RETRY_DELAY:-5}
+      - PRINT_BATCH_SIZE=${PRINT_BATCH_SIZE:-50}
+      - PRINT_BATCH_TIMEOUT=${PRINT_BATCH_TIMEOUT:-300}
+      - PRINT_CONNECTION_TIMEOUT=${PRINT_CONNECTION_TIMEOUT:-30}
+      - PRINT_READ_TIMEOUT=${PRINT_READ_TIMEOUT:-30}
+      - PRINT_EMULATOR_DELAY=${PRINT_EMULATOR_DELAY:-0.5}
+    depends_on:
+      - db_setup
+    networks:
+      - tktprint_network
+      - site_default
+    stdin_open: true
+    tty: true
+
+  # Background job worker
+  worker:
+    build: .
+    container_name: tktprint_worker
+    command: >
+      bash -c "
+        echo 'Waiting for database setup to complete...' &&
+        while [ ! -f /tmp/db_ready ]; do sleep 1; done &&
+        echo 'Database ready, starting Delayed Job worker...' &&
+        bundle exec bin/delayed_job run
+      "
+    volumes:
+      - .:/app:cached
+      - bundle_cache:/usr/local/bundle
+      - db_ready:/tmp
+      - ./config/printer.yml.${PRINTER_CONFIG:-test}:/app/config/printer.yml:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - RAILS_ENV=${RAILS_ENV:-development}
+      - DATABASE_URL=sqlite3:db/${RAILS_ENV:-development}.sqlite3
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-}
+      - RAILS_LOG_TO_STDOUT=true
+      - MOCK_PRINTING=${MOCK_PRINTING:-true}
+      - PRINT_MAX_RETRIES=${PRINT_MAX_RETRIES:-3}
+      - PRINT_RETRY_DELAY=${PRINT_RETRY_DELAY:-5}
+      - PRINT_BATCH_SIZE=${PRINT_BATCH_SIZE:-50}
+      - PRINT_BATCH_TIMEOUT=${PRINT_BATCH_TIMEOUT:-300}
+      - PRINT_CONNECTION_TIMEOUT=${PRINT_CONNECTION_TIMEOUT:-30}
+      - PRINT_READ_TIMEOUT=${PRINT_READ_TIMEOUT:-30}
+      - PRINT_EMULATOR_DELAY=${PRINT_EMULATOR_DELAY:-0.5}
+    depends_on:
+      - db_setup
+      - web
+    networks:
+      - tktprint_network
+      - site_default
+
+  # Database setup (runs once)
+  db_setup:
+    build: .
+    container_name: tktprint_db_setup
+    command: >
+      bash -c "
+        if [ -f db/$${RAILS_ENV:-development}.sqlite3 ]; then
+          echo 'Existing database found — running migrations only' &&
+          bundle exec rails db:migrate;
+        else
+          echo 'No database found — creating and migrating' &&
+          bundle exec rails db:create &&
+          bundle exec rails db:migrate;
+        fi &&
+        echo 'Database setup complete' &&
+        touch /tmp/db_ready
+      "
+    volumes:
+      - .:/app:cached
+      - bundle_cache:/usr/local/bundle
+      - db_ready:/tmp
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - RAILS_ENV=${RAILS_ENV:-development}
+      - DATABASE_URL=sqlite3:db/${RAILS_ENV:-development}.sqlite3
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-}
+    networks:
+      - tktprint_network
+
+  # Printer emulator for testing
+  printer_emulator:
+    profiles:
+      - test
+    image: alpine:latest
+    container_name: tktprint_printer
+    command: >
+      sh -c "
+        apk add --no-cache netcat-openbsd &&
+        echo 'Printer emulator listening on port 9100...' &&
+        while true; do
+          echo 'Waiting for print job...' &&
+          nc -l -p 9100 -v | while read data; do
+            echo \"Received: $$data\"
+          done
+        done
+      "
+    ports:
+      - "9100:9100"
+    networks:
+      - tktprint_network
+
+volumes:
+  bundle_cache:
+  db_ready:
+
+networks:
+  tktprint_network:
+    driver: bridge
+  site_default:
+    external: true

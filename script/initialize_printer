@@ -1,0 +1,7 @@
+#!/bin/bash
+cd ~/tktprint
+rails console <<EOF
+Fgl.load_logo_file("192.168.0.209",9100,"/home/pi/tktprint/script/logo_final_greybigdot.bmp")
+exit
+EOF
+cd -

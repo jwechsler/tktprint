@@ -1,0 +1,6 @@
+# Test printer configuration
+# Points to printer emulator on localhost
+ticket_printer_1:
+  address: "localhost"
+  port: 9100
+  logo: "public/logo.bmp"
