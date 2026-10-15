@@ -103,6 +103,10 @@ export PRINTER_CONFIG="$MODE"
 SECRET_KEY_BASE=$(grep -s '^SECRET_KEY_BASE=' .env | cut -d= -f2-)
 SECRET_KEY_BASE=${SECRET_KEY_BASE:-$(openssl rand -hex 64)}
 
+# Keep virtual printer settings across runs unless set in the shell
+BOCA_FONT_DIR=${BOCA_FONT_DIR:-$(grep -s '^BOCA_FONT_DIR=' .env | cut -d= -f2-)}
+FGL_PDF_REF=${FGL_PDF_REF:-$(grep -s '^FGL_PDF_REF=' .env | cut -d= -f2-)}
+
 # Create .env file for docker-compose to read
 cat > .env << EOF
 RAILS_ENV=$RAILS_ENV
@@ -111,6 +115,8 @@ SECRET_KEY_BASE=$SECRET_KEY_BASE
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 EOF
+[ -n "$BOCA_FONT_DIR" ] && echo "BOCA_FONT_DIR=$BOCA_FONT_DIR" >> .env
+[ -n "$FGL_PDF_REF" ] && echo "FGL_PDF_REF=$FGL_PDF_REF" >> .env
 
 # Copy the appropriate printer configuration
 PRINTER_SOURCE="config/printer.yml.$MODE"
@@ -141,7 +147,7 @@ echo ""
 # Set COMPOSE_PROFILES based on mode
 if [ "$MODE" = "test" ]; then
     export COMPOSE_PROFILES=test
-    mkdir -p tmp/printed_tickets
+    mkdir -p tmp/printed_tickets tmp/fonts
     echo "Starting services with virtual Boca printer (PDFs in tmp/printed_tickets/)..."
 else
     export COMPOSE_PROFILES=""

@@ -132,8 +132,12 @@ services:
       - FGL_PDF_LENGTH_IN=${FGL_PDF_LENGTH_IN:-5.5}
       - FGL_PDF_ANNOTATE=${FGL_PDF_ANNOTATE:-false}
       - FGL_PDF_DEBUG_GRID=${FGL_PDF_DEBUG_GRID:-false}
+      # Real Verdana for <RTF3..6> text; the printer falls back to DejaVu Sans
+      # for any face not found here. Never commit Verdana files.
+      - FGL_PDF_FONT_DIR=/fonts
     volumes:
       - ./tmp/printed_tickets:/tickets
+      - ${BOCA_FONT_DIR:-./tmp/fonts}:/fonts:ro
     ports:
       - "127.0.0.1:${BOCA_PRINTER_PORT:-9100}:9100"
     networks:

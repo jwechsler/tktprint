@@ -47,10 +47,16 @@ bundle exec bin/delayed_job start
   `tmp/printed_tickets/index.jsonl` (time, connection, rendering warnings).
 - The logo the app uploads at boot is kept in `tmp/printed_tickets/.printer/logos/`.
 - To start over, stop the services and delete `tmp/printed_tickets/`; numbering restarts at 000001.
-- Knobs (in `.env` or the shell): `FGL_PDF_REF` (git ref of fgl-pdf to build, default `main`),
+- Knobs (shell or `.env`; `start-printer.sh` keeps `FGL_PDF_REF` and `BOCA_FONT_DIR` when it
+  rewrites `.env`): `FGL_PDF_REF` (git ref of fgl-pdf to build, default `main`),
   `FGL_PDF_ANNOTATE=true` (print rendering warnings on each PDF), `FGL_PDF_DEBUG_GRID=true`
   (50-dot grid overlay), `FGL_PDF_LENGTH_IN` (ticket length, default 5.5),
   `BOCA_PRINTER_PORT` (host port on 127.0.0.1, default 9100).
+- Fonts: tktprint's `<RTF3..6>` text is Verdana. Without it the printer uses DejaVu Sans
+  (slightly wider). Put Verdana files in `tmp/fonts/` or set `BOCA_FONT_DIR` to a folder
+  holding them (e.g. `/System/Library/Fonts/Supplemental` on macOS); Windows, macOS and
+  msttcorefonts file names all work. `docker compose logs boca_printer` shows the mapping
+  (`TrueType fonts: RTF3=Verdana.ttf ...`). Never commit the font files.
 - Send raw FGL by hand: `printf '<RC10,10><F3>HELLO<p>' | nc localhost 9100`.
 - `MOCK_PRINTING` and the `PRINT_*` variables in docker-compose.yml are not read by the app.
 
