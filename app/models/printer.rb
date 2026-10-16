@@ -127,6 +127,9 @@ class Printer
       return false
     end
 
+    # Test mode (localhost): build nothing, open no socket
+    return true if @address == 'localhost'
+
     unless @address.blank?
       TCPSocket.open(@address, @port) do |socket|
         @socket = socket
@@ -144,10 +147,26 @@ class Printer
     name[0..(s_len-1)]
   end
 
+  # Characters per stub line: the name line's width (OCR-A at 4x is 28 dots per character)
+  STUB_LINE_CHARS = 20
+
+  # Performance code flush left, day and time (no AM/PM) flush right, on the same grid as
+  # the name above. The code is never cut; to make room the day and time shorten step by
+  # step: SAT 10:30, SA 10:30, SA 1030, SA1030, 1030 (the last is used even if too long).
+  def stub_performance_line(order)
+    code = order.performance_code.to_s
+    time = order.performance_time.strftime('%l:%M').strip
+    day = order.performance_date.strftime('%a').upcase
+    compact = time.delete(':')
+    choices = ["#{day} #{time}", "#{day[0, 2]} #{time}", "#{day[0, 2]} #{compact}", "#{day[0, 2]}#{compact}",
+               compact]
+    day_time = choices.find { |c| code.length + 1 + c.length <= STUB_LINE_CHARS } || choices.last
+    code.ljust(STUB_LINE_CHARS - day_time.length - 1) + ' ' + day_time
+  end
+
   def stub(order, class_code = nil, receipt=false)
     fgl = Fgl::at(10, 1665) + Fgl::rotate_right + Fgl::font_size(Fgl::OCRA) + Fgl::scale(4, 4) + truncated_name(order.first_name, order.last_name)
-        fgl << Fgl::at(10, 1615) + order.performance_code + Fgl::at(240, 1615) + order.performance_date.strftime(' %a').upcase +
-          order.performance_time.strftime(' %l:%M%p').upcase
+        fgl << Fgl::at(10, 1615) + stub_performance_line(order)
         fgl << Fgl::at(10, 1570) + Fgl::scale(3, 3) + ('%010d' % order.remote_id)
         fgl << Fgl::at(10, 1536) + Fgl::scale(3, 3) + order.patron_code
         fgl << ' ' + class_code unless class_code.nil?

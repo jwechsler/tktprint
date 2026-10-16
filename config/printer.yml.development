@@ -1,7 +1,8 @@
 # Development printer configuration
-# Points to localhost for development testing
-# development printer
+# Points to the virtual Boca printer container (boca_printer), which renders
+# every ticket to a numbered PDF in tmp/printed_tickets/.
+# Use address "localhost" to skip printing entirely.
 ticket_printer_1:
-  address: "localhost"
+  address: "boca_printer"
   port: 9100
-  logo: "public/logo.bmp"
+  logo: "public/logo.bmp.example"

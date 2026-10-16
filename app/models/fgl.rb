@@ -88,11 +88,11 @@ module Fgl
     puts "Opening socket..."
     socket = TCPSocket.open(ip_address, port)
     puts "Loading bmp file..."
-    bmpfile = File.open(filename)
-    data = bmpfile.read
+    # Binary read: <G n> is a byte count, and a UTF-8 string's length is not
+    data = File.binread(filename)
 
     puts "Sending..."
-    command = "<SP10,10>" + 27.chr + "<bmp><G#{data.length}>#{data}"
+    command = "<SP10,10>" + 27.chr + "<bmp><G#{data.bytesize}>" + data
     command << 27.chr
     slice = 0
     while slice < command.length
@@ -106,7 +106,6 @@ module Fgl
       sleep(2)
     end
     socket.close
-    bmpfile.close
     puts "logo file uploaded"
   end
 

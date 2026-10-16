@@ -34,9 +34,36 @@ bundle exec bin/delayed_job start
 - Rails console: `bundle exec rails console`
 
 **Testing:**
-- Run all tests: `bundle exec rails test`
-- Run specific test: `bundle exec rails test test/path/to/test_file.rb`
-- Run single test method: `bundle exec rails test test/path/to/test_file.rb -n test_method_name`
+- Run all specs: `bundle exec rspec`
+- Run one spec file: `bundle exec rspec spec/models/order_spec.rb`
+- Specs set `$PRINTER` to `localhost` (see `spec/rails_helper.rb`), so nothing is sent to a printer.
+
+**Virtual Boca printer (docker test mode):**
+- `./start-printer.sh -m test` starts the `boca_printer` service (profile `test`), built from
+  [fgl-pdf](https://github.com/jwechsler/fgl-pdf). It listens on port 9100 like a real Boca;
+  `config/printer.yml.test` points the app at it (`address: "boca_printer"`).
+- Every ticket and receipt the app prints is rendered to `tmp/printed_tickets/NNNNNN.pdf`
+  (sequential), with the raw FGL in `NNNNNN.fgl` and one JSON line per ticket in
+  `tmp/printed_tickets/index.jsonl` (time, connection, rendering warnings).
+- The logo the app uploads at boot is kept in `tmp/printed_tickets/.printer/logos/`.
+- To start over, stop the services and delete `tmp/printed_tickets/`; numbering restarts at 000001.
+- Knobs (shell or `.env`; `start-printer.sh` keeps `FGL_PDF_REF` and `BOCA_FONT_DIR` when it
+  rewrites `.env`): `FGL_PDF_REF` (git ref of fgl-pdf to build, default `main`),
+  `FGL_PDF_ANNOTATE=true` (print rendering warnings on each PDF), `FGL_PDF_DEBUG_GRID=true`
+  (50-dot grid overlay), `FGL_PDF_LENGTH_IN` (ticket length, default 5.5),
+  `FGL_PDF_FEED_DPI` (dots per inch along the ticket, default 307.1: the Boca 300 DPI Mini's
+  self-test reports PRINT LENGTH=1689 on the 2" x 5.5" stock, so the stub name at column 1665
+  prints in full), `FGL_PDF_PRINT_WIDTH` (rows the head images, default 576 from the self-test;
+  rows past it are tinted gray in the PDF and anything reaching them is warned about),
+  `BOCA_PRINTER_PORT` (host port on 127.0.0.1, default 9100).
+- Fonts: tktprint's `<RTF3..6>` text is Verdana. Without it the printer uses DejaVu Sans
+  (slightly wider). Put Verdana files in `tmp/fonts/` or set `BOCA_FONT_DIR` to a folder
+  holding them; Windows, macOS and msttcorefonts file names all work. On macOS, copy them:
+  `cp /System/Library/Fonts/Supplemental/Verdana*.ttf tmp/fonts/` (Docker Desktop can't
+  mount `/System`). `docker compose logs boca_printer` shows the mapping
+  (`TrueType fonts: RTF3=Verdana.ttf ...`). Never commit the font files.
+- Send raw FGL by hand: `printf '<RC10,10><F3>HELLO<p>' | nc localhost 9100`.
+- `MOCK_PRINTING` and the `PRINT_*` variables in docker-compose.yml are not read by the app.
 
 **Monitoring:**
 - Server logs: `tail -f log/development.log` or `log/production.log`
@@ -59,7 +86,8 @@ TKTPrint is a Rails 6.1 API-only application that receives JSON order data and p
    - TCP socket communication on port 9100 (standard printer port)
    - FGL module (`app/models/fgl.rb`) generates printer-specific commands
    - Prints both tickets (with barcodes, logos) and receipts
-   - **Test Mode:** Set `address: "localhost"` in printer.yml to skip actual printing
+   - **Test Mode:** Set `address: "localhost"` in printer.yml to skip actual printing,
+     or `address: "boca_printer"` to print to the virtual printer as PDFs (see above)
 
 3. **Data Model Relationships:**
    ```
