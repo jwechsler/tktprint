@@ -44,4 +44,31 @@ RSpec.describe Fgl do
       expect(Fgl.print_inline_bitmap(400, 1492, data)).to eq("<SP400,1492><bmp><G4>".b + data)
     end
   end
+
+  describe '.horizontal_rule' do
+    it 'draws a bar across the whole print width, no wider' do
+      expect(Fgl.horizontal_rule(110, 5)).to eq('<RC0,110><LT5><VX576>')
+    end
+  end
+
+  describe '.printer_bytes' do
+    it 'converts text to code page 1252' do
+      expect(Fgl.printer_bytes('Muñoz')).to eq("Mu\xF1oz".b)
+    end
+
+    it 'passes binary strings through unchanged' do
+      bytes = "<bmp>\xFF\x00".b
+      expect(Fgl.printer_bytes(bytes)).to equal(bytes)
+    end
+  end
+
+  describe '.resident_text' do
+    it 'drops accents' do
+      expect(Fgl.resident_text('Zoë Muñoz')).to eq('Zoe Munoz')
+    end
+
+    it 'treats nil as empty' do
+      expect(Fgl.resident_text(nil)).to eq('')
+    end
+  end
 end
