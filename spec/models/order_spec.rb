@@ -248,5 +248,37 @@ RSpec.describe Order, type: :model do
       expect(json_data['tickets']).to be_an(Array)
       expect(json_data['tickets'].size).to eq(order.tickets.count)
     end
+
+    it 'returns flags as an array' do
+      order.update!(flags: %w[star heart])
+      expect(order.as_json['flags']).to eq(%w[star heart])
+    end
+  end
+
+  describe 'flags' do
+    it 'stores flag names comma-separated, in the order sent' do
+      order = FactoryBot.create(:order, flags: %w[heart star])
+      expect(order.reload[:flags]).to eq('heart,star')
+      expect(order.flag_names).to eq(%w[heart star])
+    end
+
+    it 'has no flags when none are sent' do
+      order = FactoryBot.create(:order)
+      expect(order[:flags]).to be_nil
+      expect(order.flag_names).to eq([])
+    end
+
+    it 'stores nothing for an empty list' do
+      expect(FactoryBot.build(:order, flags: [])[:flags]).to be_nil
+    end
+
+    it 'trims, downcases and de-duplicates names and drops anything that is not a plain name' do
+      order = FactoryBot.build(:order, flags: [' Star ', 'star', 'heart,ticket', '<b>x</b>', ''])
+      expect(order.flag_names).to eq(%w[star])
+    end
+
+    it 'accepts a comma-separated string' do
+      expect(FactoryBot.build(:order, flags: 'star, heart').flag_names).to eq(%w[star heart])
+    end
   end
 end

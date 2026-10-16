@@ -135,7 +135,7 @@ class OrdersController < ApplicationController
     # Update top-level order attributes if provided
     updatable_attrs = params.permit(:last_name, :first_name, :performance_code, :venue,
       :theater, :title, :credit_1, :credit_2, :patron_code, :performance_date,
-      :performance_time, :amount, :remote_id)
+      :performance_time, :amount, :remote_id, flags: [])
     @order.assign_attributes(decode_entities(updatable_attrs.to_h).compact)
 
     # Replace tickets if provided (e.g. seat changes)
@@ -192,7 +192,7 @@ class OrdersController < ApplicationController
   def order_params
     params.permit(:last_name, :first_name, :performance_code, :venue, :theater,
       :title, :credit_1, :credit_2, :patron_code, :performance_date, :performance_time,
-      :amount, :remote_id, :status, :reprints, :batch_id, :batch_sequence, :print_status)
+      :amount, :remote_id, :status, :reprints, :batch_id, :batch_sequence, :print_status, flags: [])
   end
 
   # Recursively decode HTML entities in the object

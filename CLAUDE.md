@@ -111,6 +111,7 @@ TKTPrint is a Rails 6.1 API-only application that receives JSON order data and p
    - `GET /orders/:id/find_by_remote` - Find by remote_id
    - `GET /tickets?order_id=:id` - List order's tickets
    - `PUT /tickets/:id` - Update ticket (e.g., seat)
+   - `PUT /orders/:id/reprint` - Reprint, replacing order data, tickets and flags if sent
 
 **Required Configuration Files:**
 1. Create `config/authorization.yml` from `.example`:
@@ -127,6 +128,20 @@ TKTPrint is a Rails 6.1 API-only application that receives JSON order data and p
        address: "localhost"  # Use real IP for production
        port: 9100
    ```
+
+**Receipt flags:**
+- Orders take an optional `flags` array of icon names (`POST /orders`, `PUT /orders/:id/reprint`;
+  on reprint, omitting `flags` keeps the old ones and `[]` clears them). Stored comma-separated in
+  `orders.flags`; `Order#flag_names` returns the array and `as_json` emits it as an array.
+- Names come from `config/flags.yml` (`flag`, `star`, `ticket`, `heart`, `checkmark`), each a 48x48
+  1-bit BMP in `config/flag_icons/` built by `script/build_flag_icons` (ImageMagick shapes).
+  tktprint knows no business meaning; stagemgr decides what each icon stands for.
+- `Printer#receipt_fgl` prints up to `MAX_RECEIPT_FLAGS` (3) icons right of the RECEIPT banner,
+  sent inline (`<SPr,c><bmp><G n>` + bytes) with that receipt only, so a printer restart can't
+  lose them. Unknown and extra names are logged and skipped. Tickets never show flags.
+- Receipt FGL is a binary string (`Printer#queue` keeps the buffer binary) because icon bytes
+  can't be joined to non-ASCII UTF-8 text.
+- The theater logo is stored in slot 1 (`<ID1>`) at boot and recalled as `<LD1>`.
 
 **Key Implementation Details:**
 - All text inputs sanitized (HTML tags stripped) via `strip_tags` concern

@@ -36,4 +36,63 @@ RSpec.describe Printer do
       end
     end
   end
+
+  describe '#receipt_fgl' do
+    def receipt_order(flags: nil, last_name: 'Doe')
+      order = FactoryBot.build(:order, last_name: last_name, flags: flags)
+      order.line_items.build(description: 'GENERAL', amount: 35)
+      order.payments.build(payment_type: 'Visa', transaction_id: '1234', amount: 35)
+      order
+    end
+
+    def icon(name)
+      Flag.find(name).bitmap
+    end
+
+    it 'sends no icon bytes for an order without flags' do
+      expect(printer.receipt_fgl(receipt_order)).not_to include('<bmp>')
+    end
+
+    it 'prints each flag inline, right-aligned in the RECEIPT band, in the order sent' do
+      fgl = printer.receipt_fgl(receipt_order(flags: %w[star heart]))
+      star = Fgl.print_inline_bitmap(474, 1492, icon('star'))
+      heart = Fgl.print_inline_bitmap(526, 1492, icon('heart'))
+      expect(fgl).to include(star + heart)
+    end
+
+    it 'sends only the bitmaps of the flags it prints' do
+      fgl = printer.receipt_fgl(receipt_order(flags: %w[ticket]))
+      expect(fgl.scan('<bmp>'.b).size).to eq(1)
+      expect(fgl.bytesize).to eq(printer.receipt_fgl(receipt_order).bytesize +
+                                 Fgl.print_inline_bitmap(526, 1492, icon('ticket')).bytesize)
+    end
+
+    it 'skips names not in the registry' do
+      fgl = printer.receipt_fgl(receipt_order(flags: %w[unicorn star]))
+      expect(fgl.scan('<bmp>'.b).size).to eq(1)
+      expect(fgl).to include(Fgl.print_inline_bitmap(526, 1492, icon('star')))
+    end
+
+    it "prints at most #{Printer::MAX_RECEIPT_FLAGS} flags and drops the rest" do
+      fgl = printer.receipt_fgl(receipt_order(flags: %w[flag star ticket heart checkmark]))
+      expect(fgl.scan('<bmp>'.b).size).to eq(Printer::MAX_RECEIPT_FLAGS)
+      expect(fgl).not_to include(icon('heart'))
+    end
+
+    it 'keeps non-ASCII names intact alongside the icons' do
+      fgl = printer.receipt_fgl(receipt_order(flags: %w[star], last_name: 'Muñoz'))
+      expect(fgl).to include('MUÑOZ'.b)
+    end
+
+    it 'ends with the print command' do
+      expect(printer.receipt_fgl(receipt_order(flags: %w[star]))).to end_with('<p>')
+    end
+  end
+
+  describe 'tickets' do
+    it 'never carries flag icons on the stub' do
+      order = FactoryBot.build(:order, flags: %w[star])
+      expect(printer.stub(order, 'GA')).not_to include('<bmp>')
+    end
+  end
 end

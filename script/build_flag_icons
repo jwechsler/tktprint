@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Builds the receipt flag icons in config/flag_icons/ as 48x48 1-bit BMPs.
+# The icons are drawn from ImageMagick shapes, so no font or icon set license applies.
+# Requires ImageMagick 7 (`magick`). Rerun after editing a shape; commit the .bmp files.
+set -euo pipefail
+
+SIZE=48
+OUT="$(cd "$(dirname "$0")/.." && pwd)/config/flag_icons"
+mkdir -p "$OUT"
+
+icon() {
+  local name=$1; shift
+  magick -size ${SIZE}x${SIZE} xc:white -fill black -stroke black "$@" \
+    -threshold 50% -type bilevel BMP3:"$OUT/$name.bmp"
+  echo "wrote $OUT/$name.bmp"
+}
+
+# Flag on a pole
+icon flag -stroke none -draw "rectangle 6,3 10,45" \
+  -draw "polygon 10,4 42,4 34,14 42,24 10,24"
+
+# Five-pointed star
+icon star -stroke none \
+  -draw "polygon 24,2 29.6,17.3 45.9,17.9 33.1,28 37.6,43.7 24,34.6 10.4,43.7 14.9,28 2.1,17.9 18.4,17.3"
+
+# Ticket with notched ends and a perforation
+icon ticket -stroke none -draw "rectangle 2,12 45,35" \
+  -fill white -draw "circle 2,23.5 8,23.5" -draw "circle 45,23.5 39,23.5" \
+  -draw "rectangle 31,15 33,18" -draw "rectangle 31,22 33,25" -draw "rectangle 31,29 33,32"
+
+# Heart
+icon heart -stroke none -draw "circle 15,16 15,4" -draw "circle 33,16 33,4" \
+  -draw "polygon 4,21 44,21 24,44"
+
+# Check mark
+icon checkmark -fill none -strokewidth 8 -draw "stroke-linecap round stroke-linejoin round polyline 6,25 18,37 42,10"

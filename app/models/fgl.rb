@@ -84,7 +84,15 @@ module Fgl
   def self.print_stored_image(row, column, image_number)
     "<SP#{row},#{column}><LD#{image_number}>"
   end
-  def self.load_logo_file(ip_address,port,filename)
+
+  # Prints a BMP file's bytes at (row, column) without storing it on the printer.
+  # Returns a binary string; <G n> counts bytes.
+  def self.print_inline_bitmap(row, column, data)
+    "<SP#{row},#{column}><bmp><G#{data.bytesize}>".b + data.b
+  end
+
+  # id: the logo slot to store into (<IDn>); without it the printer picks the slot
+  def self.load_logo_file(ip_address, port, filename, id: nil)
     puts "Opening socket..."
     socket = TCPSocket.open(ip_address, port)
     puts "Loading bmp file..."
@@ -92,7 +100,7 @@ module Fgl
     data = File.binread(filename)
 
     puts "Sending..."
-    command = "<SP10,10>" + 27.chr + "<bmp><G#{data.bytesize}>" + data
+    command = (id ? "<ID#{id}>" : "") + "<SP10,10>" + 27.chr + "<bmp><G#{data.bytesize}>" + data
     command << 27.chr
     slice = 0
     while slice < command.length

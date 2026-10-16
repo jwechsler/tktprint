@@ -5,6 +5,9 @@ class Order < ActiveRecord::Base
   UNPRINTED, PRINTED =
       'Unprinted', 'Printed'
 
+  # Flag names are stored comma-separated; anything but lowercase words is dropped
+  FLAG_NAME_FORMAT = /\A[a-z0-9_]+\z/
+
 #  validates_uniqueness_of :remote_id
 
   has_many :line_items, :dependent=>:destroy
@@ -38,7 +41,19 @@ class Order < ActiveRecord::Base
   end
 
   def as_json(options = {})
-    super(options.merge(include: [:tickets]))
+    super(options.merge(include: [:tickets])).merge('flags' => flag_names)
+  end
+
+  # Flag names in the order stagemgr sent them
+  def flag_names
+    flags.to_s.split(',')
+  end
+
+  # Accepts an array of names (or a comma-separated string); blank means no flags
+  def flags=(names)
+    list = names.is_a?(String) ? names.split(',') : Array(names)
+    cleaned = list.map { |name| name.to_s.strip.downcase }.select { |name| name.match?(FLAG_NAME_FORMAT) }.uniq
+    super(cleaned.empty? ? nil : cleaned.join(','))
   end
 
   def unprinted?
