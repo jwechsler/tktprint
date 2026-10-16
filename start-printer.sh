@@ -151,7 +151,7 @@ if [ "$MODE" = "test" ]; then
     echo "Starting services with virtual Boca printer (PDFs in tmp/printed_tickets/)..."
 else
     export COMPOSE_PROFILES=""
-    echo "Starting services for live printer (no emulator)..."
+    echo "Starting services for live printer (no virtual printer)..."
 fi
 
 # Temporarily rename override file if in production mode

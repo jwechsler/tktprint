@@ -55,7 +55,7 @@ function print_usage() {
     echo "  up       - Start all services"
     echo "  down     - Stop all services"
     echo "  restart  - Restart all services"
-    echo "  logs     - Show logs (optionally specify service: web, worker, printer_emulator)"
+    echo "  logs     - Show logs (optionally specify service: web, worker, boca_printer)"
     echo "  shell    - Open a shell in the web container"
     echo "  console  - Open Rails console"
     echo "  test     - Run tests"
@@ -81,7 +81,7 @@ case "$1" in
         echo ""
         echo "Services available at:"
         echo "  - Rails app: http://localhost:3000"
-        echo "  - Printer emulator: localhost:9100"
+        echo "  - Virtual Boca printer: start with ./start-printer.sh -m test (PDFs in tmp/printed_tickets/)"
         echo ""
         echo "View logs with: $0 logs"
         ;;
