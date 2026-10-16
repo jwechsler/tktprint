@@ -38,10 +38,21 @@ bundle exec bin/delayed_job start
 - Run one spec file: `bundle exec rspec spec/models/order_spec.rb`
 - Specs set `$PRINTER` to `localhost` (see `spec/rails_helper.rb`), so nothing is sent to a printer.
 
-**Virtual Boca printer (docker test mode):**
-- `./start-printer.sh -m test` starts the `boca_printer` service (profile `test`), built from
+**Printer per machine (`config/printer.yml`):**
+- Each machine has its own gitignored `config/printer.yml`, keyed by `RAILS_ENV`, from
+  `config/printer.yml.example` (`start-printer.sh` creates it on first run). The app reads the
+  `RAILS_ENV` section, else `production`; a flat file (`ticket_printer_1:` at top level) still
+  works for every environment.
+- Development machine: `development` → `"boca_printer"` (PDFs). Box office machine: every section
+  → the real Boca (`192.168.0.209`), so it prints real tickets whatever `RAILS_ENV` it runs.
+  To test-print on the real Boca from a development machine, point `development` at its IP.
+- `./start-printer.sh` starts web and worker, plus the virtual Boca when the current
+  `RAILS_ENV`'s address is `"boca_printer"`. There are no modes or `printer.yml.*` copies.
+
+**Virtual Boca printer:**
+- The `boca_printer` service (compose profile `virtual-printer`) is built from
   [fgl-pdf](https://github.com/jwechsler/fgl-pdf). It listens on port 9100 like a real Boca;
-  `config/printer.yml.test` points the app at it (`address: "boca_printer"`).
+  `start-printer.sh` starts it when `config/printer.yml` points the app at it.
 - Every ticket and receipt the app prints is rendered to `tmp/printed_tickets/NNNNNN.pdf`
   (sequential), with the raw FGL in `NNNNNN.fgl` and one JSON line per ticket in
   `tmp/printed_tickets/index.jsonl` (time, connection, rendering warnings).
@@ -85,8 +96,8 @@ TKTPrint is a Rails 6.1 API-only application that receives JSON order data and p
    - TCP socket communication on port 9100 (standard printer port)
    - FGL module (`app/models/fgl.rb`) generates printer-specific commands
    - Prints both tickets (with barcodes, logos) and receipts
-   - **Test Mode:** Set `address: "localhost"` in printer.yml to skip actual printing,
-     or `address: "boca_printer"` to print to the virtual printer as PDFs (see above)
+   - **Where tickets go:** `config/printer.yml` (see "Printer per machine" above).
+     `address: "localhost"` skips printing; `"boca_printer"` prints PDFs.
 
 3. **Data Model Relationships:**
    ```
@@ -120,13 +131,8 @@ TKTPrint is a Rails 6.1 API-only application that receives JSON order data and p
      password: "dev_password"
    ```
 
-2. Create `config/printer.yml` from `.example`:
-   ```yaml
-   development:
-     ticket_printer_1:
-       address: "localhost"  # Use real IP for production
-       port: 9100
-   ```
+2. Create `config/printer.yml` from `config/printer.yml.example` (`start-printer.sh` does this
+   on first run) and set this machine's printer address for each environment.
 
 **Receipt flags:**
 - Orders take an optional `flags` array of icon names (`POST /orders`, `PUT /orders/:id/reprint`;

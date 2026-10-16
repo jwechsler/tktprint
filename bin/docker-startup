@@ -1,5 +1,5 @@
 #!/bin/bash
-# Docker startup script for TKTPrint with printer configuration support
+# Docker helper for TKTPrint (the printer comes from config/printer.yml)
 
 set -e
 
@@ -9,46 +9,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Default environment - use RAILS_ENV if set, otherwise development
-PRINTER_ENV="${RAILS_ENV:-development}"
-
-# Parse command line arguments for --environment flag
-ARGS=()
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --environment)
-            PRINTER_ENV="$2"
-            shift # past argument
-            shift # past value
-            ;;
-        *)
-            ARGS+=("$1") # save other arguments
-            shift # past argument
-            ;;
-    esac
-done
-
-# Set positional arguments
-set -- "${ARGS[@]}"
-
-function setup_printer_config() {
-    local env="$1"
-    local config_file="config/printer.yml.$env"
-    
-    if [ -f "$config_file" ]; then
-        echo -e "${YELLOW}Setting up printer configuration for $env environment...${NC}"
-        cp "$config_file" config/printer.yml
-        echo -e "${GREEN}✓ Copied $config_file to config/printer.yml${NC}"
-    else
-        echo -e "${RED}Warning: $config_file not found, using existing config/printer.yml${NC}"
-    fi
-}
-
 function print_usage() {
-    echo "Usage: $0 [--environment {development|production}] {build|up|down|restart|logs|shell|console|test|init}"
-    echo ""
-    echo "Options:"
-    echo "  --environment  - Specify printer environment (development or production)"
+    echo "Usage: $0 {build|up|down|restart|logs|shell|console|test|init|status|clean}"
     echo ""
     echo "Commands:"
     echo "  build    - Build Docker images"
@@ -74,14 +36,13 @@ case "$1" in
     up)
         echo -e "${YELLOW}Initializing configuration...${NC}"
         ./docker/init.sh
-        setup_printer_config "$PRINTER_ENV"
         echo -e "${YELLOW}Starting services...${NC}"
         docker-compose up -d
         echo -e "${GREEN}✓ Services started${NC}"
         echo ""
         echo "Services available at:"
         echo "  - Rails app: http://localhost:3000"
-        echo "  - Virtual Boca printer: start with ./start-printer.sh -m test (PDFs in tmp/printed_tickets/)"
+        echo "  - Printer: from config/printer.yml; use ./start-printer.sh to also start the virtual Boca"
         echo ""
         echo "View logs with: $0 logs"
         ;;
@@ -94,7 +55,7 @@ case "$1" in
     
     restart)
         $0 down
-        $0 --environment "$PRINTER_ENV" up
+        $0 up
         ;;
     
     logs)
