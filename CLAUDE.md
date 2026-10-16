@@ -63,7 +63,6 @@ bundle exec bin/delayed_job start
   mount `/System`). `docker compose logs boca_printer` shows the mapping
   (`TrueType fonts: RTF3=Verdana.ttf ...`). Never commit the font files.
 - Send raw FGL by hand: `printf '<RC10,10><F3>HELLO<p>' | nc localhost 9100`.
-- `MOCK_PRINTING` and the `PRINT_*` variables in docker-compose.yml are not read by the app.
 
 **Monitoring:**
 - Server logs: `tail -f log/development.log` or `log/production.log`

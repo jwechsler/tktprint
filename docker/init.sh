@@ -23,27 +23,12 @@ EOF
     echo "  WARNING: Change these credentials before production use!"
 fi
 
+# address "localhost" prints nothing. In docker, start-printer.sh copies
+# config/printer.yml.{test,development,production} into place instead.
 if [ ! -f config/printer.yml ]; then
     echo "Creating config/printer.yml from example..."
-    cat > config/printer.yml << EOF
-# Printer configuration for Docker development environment
-development:
-  ticket_printer_1:
-    # Use the printer_emulator service name for Docker networking
-    address: "printer_emulator"
-    port: 9100
-
-test:
-  ticket_printer_1:
-    address: "localhost"
-    port: 9100
-
-production:
-  ticket_printer_1:
-    address: "192.168.1.100"  # Replace with actual printer IP
-    port: 9100
-EOF
-    echo "✓ Created config/printer.yml for Docker environment"
+    cp config/printer.yml.example config/printer.yml
+    echo "✓ Created config/printer.yml (address: localhost, nothing is printed)"
 fi
 
 echo "=== Configuration complete ==="

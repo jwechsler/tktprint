@@ -79,33 +79,33 @@ A Docker-based development environment is available that replicates the producti
 #### Quick Start
 
 ```bash
-# Initialize and start all services (web, worker, database, printer emulator)
-./bin/docker-dev up
+# Start web, worker and the virtual Boca printer (PDFs in tmp/printed_tickets/)
+./start-printer.sh -m test
 
 # View logs for all services
-./bin/docker-dev logs
+./bin/docker-startup logs
 
 # View logs for a specific service
-./bin/docker-dev logs web
-./bin/docker-dev logs worker
-./bin/docker-dev logs printer_emulator
+./bin/docker-startup logs web
+./bin/docker-startup logs worker
+./bin/docker-startup logs boca_printer
 
 # Access Rails console
-./bin/docker-dev console
+./bin/docker-startup console
 
 # Open a shell in the web container
-./bin/docker-dev shell
+./bin/docker-startup shell
 
 # Run tests
-./bin/docker-dev test
+./bin/docker-startup test
 
 # Stop all services
-./bin/docker-dev down
+./bin/docker-startup down
 ```
 
 #### Testing Printer Communication
 
-1. Start the services: `./bin/docker-dev up`
+1. Start the services: `./start-printer.sh -m test`
 2. Create a test order:
    ```bash
    curl -X POST http://localhost:3000/orders.json \
@@ -124,12 +124,13 @@ A Docker-based development environment is available that replicates the producti
    ```
    Then print it with `curl -X POST -u dev_user:dev_password http://localhost:3000/orders/<id>/print.json`.
    `flags` is optional; see "Receipt flags" in CLAUDE.md.
-3. Check printer emulator output: `./bin/docker-dev logs printer_emulator`
+3. Open the newest PDF in `tmp/printed_tickets/` (`index.jsonl` lists any rendering warnings)
 
 The Docker environment includes:
 - Rails web server (Puma) on port 3000
 - Delayed Job worker for background processing
-- Printer emulator on port 9100 that logs all received print jobs
+- A virtual Boca printer ([fgl-pdf](https://github.com/jwechsler/fgl-pdf)) on port 9100 that renders
+  each ticket and receipt to a PDF; see "Virtual Boca printer" in CLAUDE.md
 - Automatic configuration file setup
 
 ## Monitoring
