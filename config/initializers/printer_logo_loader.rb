@@ -57,7 +57,8 @@ Rails.application.config.after_initialize do
     Rails.logger.info("Loading logo from #{logo_file} to printer at #{address}:#{port}")
 
     begin
-      Fgl.load_logo_file(address, port, logo_file.to_s)
+      # Tickets recall the logo as <LD1>, so store it in slot 1 explicitly
+      Fgl.load_logo_file(address, port, logo_file.to_s, id: 1)
       Rails.logger.info("=== Printer Logo Loader: SUCCESS ===")
     rescue => e
       Rails.logger.error("Failed to load logo into printer: #{e.message}")

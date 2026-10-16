@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2025_07_17_235606) do
+ActiveRecord::Schema.define(version: 2026_10_16_170000) do
 
   create_table "delayed_jobs", force: :cascade do |t|
     t.integer "priority", default: 0, null: false
@@ -61,6 +61,7 @@ ActiveRecord::Schema.define(version: 2025_07_17_235606) do
     t.string "print_status", default: "unprinted"
     t.text "print_error"
     t.datetime "printed_at"
+    t.string "flags"
     t.index ["batch_id", "batch_sequence"], name: "index_orders_on_batch_id_and_batch_sequence"
     t.index ["batch_id"], name: "index_orders_on_batch_id"
     t.index ["print_status"], name: "index_orders_on_print_status"

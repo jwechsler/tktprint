@@ -23,5 +23,25 @@ RSpec.describe Fgl do
       expected = "<SP10,10>\e<bmp><G#{logo.bytesize}>".b + logo + "\e".b
       expect(received.value.b).to eq(expected)
     end
+
+    it 'stores the logo in the given slot' do
+      received = Thread.new do
+        client = server.accept
+        data = client.read
+        client.close
+        data
+      end
+
+      Fgl.load_logo_file('127.0.0.1', server.addr[1], logo_path, id: 1)
+
+      expect(received.value.b).to start_with("<ID1><SP10,10>\e<bmp><G".b)
+    end
+  end
+
+  describe '.print_inline_bitmap' do
+    it 'prints the bitmap bytes at a position without storing them' do
+      data = "BM\x00\xFF".b
+      expect(Fgl.print_inline_bitmap(400, 1492, data)).to eq("<SP400,1492><bmp><G4>".b + data)
+    end
   end
 end

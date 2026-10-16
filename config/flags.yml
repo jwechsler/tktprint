@@ -1,0 +1,9 @@
+# Receipt flag icons. stagemgr sends flag names in an order's `flags` array; each name here
+# maps to a 1-bit BMP that is sent inline with every receipt that carries the flag (nothing is
+# stored on the printer, so a printer restart can't lose them). Names carry no business
+# meaning: stagemgr decides what each icon stands for. Rebuild with script/build_flag_icons.
+flag:      { icon: "config/flag_icons/flag.bmp" }
+star:      { icon: "config/flag_icons/star.bmp" }
+ticket:    { icon: "config/flag_icons/ticket.bmp" }
+heart:     { icon: "config/flag_icons/heart.bmp" }
+checkmark: { icon: "config/flag_icons/checkmark.bmp" }

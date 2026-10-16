@@ -108,25 +108,22 @@ A Docker-based development environment is available that replicates the producti
 1. Start the services: `./bin/docker-dev up`
 2. Create a test order:
    ```bash
-   curl -X POST http://localhost:3000/orders \
+   curl -X POST http://localhost:3000/orders.json \
      -u dev_user:dev_password \
      -H "Content-Type: application/json" \
      -d '{
-       "order": {
-         "remote_id": "TEST001",
-         "status": "Unprinted",
-         "customer_name": "Test Customer",
-         "performance_name": "Test Show",
-         "performance_date": "2024-12-31",
-         "tickets": [
-           {
-             "barcode": "123456789",
-             "price": 25.00
-           }
-         ]
-       }
+       "last_name": "Customer", "first_name": "Test",
+       "performance_code": "TS001", "venue": "Theater Two", "theater": "Theater Wit",
+       "title": "Test Show", "patron_code": "P1", "remote_id": 1001, "amount": "25.0",
+       "performance_date": "2024-12-31", "performance_time": "2000-01-01T19:00:00.000+00:00",
+       "flags": ["star", "heart"],
+       "line_items_attributes": [{"description": "1 GENERAL", "amount": "25.0"}],
+       "payments_attributes": [{"description": "MC ****4648::AUTH 123", "amount": "25.0"}],
+       "tickets_attributes": [{"ticket_class": "GENERAL", "seat": ""}]
      }'
    ```
+   Then print it with `curl -X POST -u dev_user:dev_password http://localhost:3000/orders/<id>/print.json`.
+   `flags` is optional; see "Receipt flags" in CLAUDE.md.
 3. Check printer emulator output: `./bin/docker-dev logs printer_emulator`
 
 The Docker environment includes:

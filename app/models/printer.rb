@@ -25,12 +25,13 @@ class Printer
     @address = ip_address || $PRINTER[0]['address']
     @port = port || $PRINTER[0]['port']
     self.tickets = Array.new
-    @buffer = ''
+    @buffer = ''.b
   end
 
 
+  # The buffer is binary: inline bitmaps can't be joined to non-ASCII UTF-8 text
   def queue(command)
-    @buffer += command
+    @buffer += command.b
   end
 
   def flush(socket)
@@ -47,7 +48,7 @@ class Printer
       socket.write(send_data)
       sleep(0.3)
     end
-    @buffer = ''
+    @buffer = ''.b
   end
 
   def connect
@@ -182,9 +183,38 @@ class Printer
     fgl
   end
 
+  # Receipt flag icons sit in the RECEIPT banner's band, right of the centered word,
+  # last flag flush against the print width
+  MAX_RECEIPT_FLAGS = 3
+  FLAG_BAND_COLUMN = 1492
+  FLAG_ICON_PITCH = 52
+  FLAG_LAST_ROW = 526
+
+  # Inline icons for the order's known flags (at most MAX_RECEIPT_FLAGS), in the order sent.
+  # Binary string; unknown and extra flags are logged and skipped.
+  def flag_icons_fgl(order)
+    names = order.flag_names
+    flags = names.map { |name| Flag.find(name) }.compact
+    unknown = names - flags.map(&:name)
+    Rails.logger.warn("Order #{order.id}: unknown flags #{unknown.join(', ')} not printed") if unknown.any?
+    dropped = flags.drop(MAX_RECEIPT_FLAGS)
+    Rails.logger.warn("Order #{order.id}: flags #{dropped.map(&:name).join(', ')} not printed (max #{MAX_RECEIPT_FLAGS})") if dropped.any?
+
+    shown = flags.first(MAX_RECEIPT_FLAGS)
+    first_row = FLAG_LAST_ROW - (shown.size - 1) * FLAG_ICON_PITCH
+    shown.each_with_index.map do |flag, index|
+      Fgl::print_inline_bitmap(first_row + index * FLAG_ICON_PITCH, FLAG_BAND_COLUMN, flag.bitmap)
+    end.join.b
+  end
+
   # @param order [Object]
   def print_receipt(order)
     Rails.logger.debug(order.to_yaml)
+    self.queue(receipt_fgl(order))
+  end
+
+  # Binary string: the receipt's FGL, flag icons included
+  def receipt_fgl(order)
     #Receipts are vertically oriented, and we're printing them upside down for consistency
     fgl = self.stub(order,nil,true)
 
@@ -223,10 +253,8 @@ class Printer
     fgl << Fgl::at(10,y-30) + "No refunds or exchanges" + Fgl::scale(1, 1)
     fgl << Fgl::horizontal_rule(110, 5) + Fgl::at(10, 100) + Fgl::font_size(Fgl::VERDANA_BOLD, 16) + "RECEIPT ONLY"
 
-    fgl << Fgl::print_buffer
-    self.queue(fgl)
-
-    #self.status
+    # Icons last: their bytes make the string binary, which non-ASCII text can't be appended to
+    fgl.b + flag_icons_fgl(order) + Fgl::print_buffer
   end
 
   def print_ticket(ticket)
