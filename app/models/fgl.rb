@@ -9,6 +9,9 @@ module Fgl
     -1, -2, -3, -4, -5, -6
     )
 
+  # Dots the print head images across the ticket (Boca 300 DPI Mini self-test)
+  PRINT_WIDTH = 576
+
   def self.row_column(row,column)
     at(row,column)
   end
@@ -53,8 +56,10 @@ module Fgl
     "<LT#{width}><HX#{length}>"
   end
 
+  # A rule across the whole print width at `column`. Rows run across the ticket, so in
+  # FGL's terms this is a vertical line (<VX>) of PRINT_WIDTH rows; <LT> sets its thickness.
   def self.horizontal_rule(column, thickness = 2)
-    row_column(600,column) << horizontal_line(600, thickness)
+    row_column(0, column) << "<LT#{thickness}><VX#{PRINT_WIDTH}>"
   end
 
   def self.invert_text(text)
@@ -75,6 +80,21 @@ module Fgl
 
   def self.rotate_180
     "<RU>"
+  end
+
+  # Bytes to send for FGL that may hold customer text. TrueType text prints in code
+  # page 1252 (the Boca's default <TTCP3>); characters outside it become '?'. Binary
+  # strings (already converted, possibly holding bitmaps) pass through unchanged.
+  def self.printer_bytes(fgl)
+    return fgl if fgl.encoding == Encoding::BINARY
+
+    fgl.encode(Encoding::Windows_1252, invalid: :replace, undef: :replace, replace: '?').b
+  end
+
+  # Text for the resident fonts (OCR-A, OCR-B, F1...), which only print ASCII reliably:
+  # accents are dropped (Muñoz -> Munoz)
+  def self.resident_text(text)
+    ActiveSupport::Inflector.transliterate(text.to_s)
   end
 
   def self.ticket_count

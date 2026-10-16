@@ -29,9 +29,9 @@ class Printer
   end
 
 
-  # The buffer is binary: inline bitmaps can't be joined to non-ASCII UTF-8 text
+  # The buffer holds the bytes sent to the printer: text in code page 1252, plus bitmaps
   def queue(command)
-    @buffer += command.b
+    @buffer += Fgl::printer_bytes(command)
   end
 
   def flush(socket)
@@ -155,7 +155,7 @@ class Printer
   # the name above. The code is never cut; to make room the day and time shorten step by
   # step: SAT 10:30, SA 10:30, SA 1030, SA1030, 1030 (the last is used even if too long).
   def stub_performance_line(order)
-    code = order.performance_code.to_s
+    code = Fgl::resident_text(order.performance_code)
     time = order.performance_time.strftime('%l:%M').strip
     day = order.performance_date.strftime('%a').upcase
     compact = time.delete(':')
@@ -165,12 +165,14 @@ class Printer
     code.ljust(STUB_LINE_CHARS - day_time.length - 1) + ' ' + day_time
   end
 
+  # The stub is in resident OCR fonts, so its customer text is ASCII (accents dropped)
   def stub(order, class_code = nil, receipt=false)
-    fgl = Fgl::at(10, 1665) + Fgl::rotate_right + Fgl::font_size(Fgl::OCRA) + Fgl::scale(4, 4) + truncated_name(order.first_name, order.last_name)
+    name = truncated_name(Fgl::resident_text(order.first_name), Fgl::resident_text(order.last_name))
+    fgl = Fgl::at(10, 1665) + Fgl::rotate_right + Fgl::font_size(Fgl::OCRA) + Fgl::scale(4, 4) + name
         fgl << Fgl::at(10, 1615) + stub_performance_line(order)
         fgl << Fgl::at(10, 1570) + Fgl::scale(3, 3) + ('%010d' % order.remote_id)
-        fgl << Fgl::at(10, 1536) + Fgl::scale(3, 3) + order.patron_code
-        fgl << ' ' + class_code unless class_code.nil?
+        fgl << Fgl::at(10, 1536) + Fgl::scale(3, 3) + Fgl::resident_text(order.patron_code)
+        fgl << ' ' + Fgl::resident_text(class_code) unless class_code.nil?
         if receipt
           warntext = "RECEIPT"
         elsif (order.reprint_count || 0) > 0
@@ -213,7 +215,7 @@ class Printer
     self.queue(receipt_fgl(order))
   end
 
-  # Binary string: the receipt's FGL, flag icons included
+  # Bytes for the printer (binary): text in code page 1252, flag icons included
   def receipt_fgl(order)
     #Receipts are vertically oriented, and we're printing them upside down for consistency
     fgl = self.stub(order,nil,true)
@@ -253,8 +255,8 @@ class Printer
     fgl << Fgl::at(10,y-30) + "No refunds or exchanges" + Fgl::scale(1, 1)
     fgl << Fgl::horizontal_rule(110, 5) + Fgl::at(10, 100) + Fgl::font_size(Fgl::VERDANA_BOLD, 16) + "RECEIPT ONLY"
 
-    # Icons last: their bytes make the string binary, which non-ASCII text can't be appended to
-    fgl.b + flag_icons_fgl(order) + Fgl::print_buffer
+    # Icons last: text is converted to printer bytes first, then the binary bitmaps follow
+    Fgl::printer_bytes(fgl) + flag_icons_fgl(order) + Fgl::print_buffer
   end
 
   def print_ticket(ticket)
@@ -269,7 +271,7 @@ class Printer
     #date_str = "1234567890123456789012345678901234567890"
     date_str = date_str[0..36] if date_str.length > 37
     margin = (37-date_str.length) / 2.0
-    pixels = 30*margin
+    pixels = (30 * margin).round
     seat_text = ticket.seat.blank? ? "GENERAL ADMISSION - ADMIT ONE" : "RESERVED SEATING: #{ticket.seat}"
 
     fgl << Fgl::non_rotated +  Fgl::row_column(10, 140+pixels) + Fgl::font_size(Fgl::OCRB) + date_str
@@ -346,8 +348,9 @@ class Printer
     fgl << Fgl::print_stored_image(90, 185 + box_width, 1)
     # print tracking code
 
-    ticket_track = ticket.order.patron_code + DateTime.now.strftime('%g%m%d %H%M%S ') + ('%08d' % ticket.order.id.to_s) + Fgl::ticket_count
-    fgl << Fgl::at(520, 980) + Fgl::font_size(Fgl::OCRB) + ticket.order.performance_code + ' ' + ticket.ticket_class
+    # The tracking lines are in resident OCR fonts, so their customer text is ASCII
+    ticket_track = Fgl::resident_text(ticket.order.patron_code) + DateTime.now.strftime('%g%m%d %H%M%S ') + ('%08d' % ticket.order.id.to_s) + Fgl::ticket_count
+    fgl << Fgl::at(520, 980) + Fgl::font_size(Fgl::OCRB) + Fgl::resident_text("#{ticket.order.performance_code} #{ticket.ticket_class}")
     fgl << Fgl::at(555, 980) + Fgl::font_size(Fgl::OCRA) + ticket.order.remote_id.to_s + ':' + ticket_track
 
     fgl << self.stub(ticket.order, ticket.ticket_class)

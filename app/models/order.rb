@@ -17,6 +17,9 @@ class Order < ActiveRecord::Base
 
   accepts_nested_attributes_for :line_items, :payments, :tickets
 
+  # performance_time is the show's wall-clock time of day, not an instant: never shift it by a zone
+  self.skip_time_zone_conversion_for_attributes = [:performance_time]
+
   before_save :strip_html
   # Remove automatic printing - now handled by batch processing
   # after_create :print
@@ -42,6 +45,17 @@ class Order < ActiveRecord::Base
 
   def as_json(options = {})
     super(options.merge(include: [:tickets])).merge('flags' => flag_names)
+  end
+
+  # Keeps the hour and minute as sent (stagemgr sends 2000-01-01T19:00:00+00:00), ignoring
+  # any offset, so a 7:00 PM show prints 7:00 PM whatever the server's time zone
+  def performance_time=(value)
+    time = value.is_a?(String) ? DateTime.parse(value) : value
+    return super(value) unless time.respond_to?(:hour)
+
+    super(Time.utc(2000, 1, 1, time.hour, time.min, time.sec))
+  rescue ArgumentError, Date::Error
+    super(value)
   end
 
   # Flag names in the order stagemgr sent them

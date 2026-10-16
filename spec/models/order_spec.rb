@@ -281,4 +281,36 @@ RSpec.describe Order, type: :model do
       expect(FactoryBot.build(:order, flags: 'star, heart').flag_names).to eq(%w[star heart])
     end
   end
+
+  describe 'performance_time' do
+    # The show's wall-clock time, as stagemgr sent it: never shifted by any time zone
+    # In docker, the host's /etc/localtime once replaced the container's UTC zone file,
+    # so Rails' "UTC" zone was really Pacific time
+    around do |example|
+      original = ENV['TZ']
+      ENV['TZ'] = 'America/Los_Angeles'
+      Time.use_zone('Pacific Time (US & Canada)') { example.run }
+    ensure
+      ENV['TZ'] = original
+    end
+
+    it 'prints the time stagemgr sent, whatever the server time zone' do
+      order = FactoryBot.create(:order, performance_time: '2000-01-01T19:00:00.000+00:00')
+      expect(order.reload.performance_time.strftime('%l:%M %p').strip).to eq('7:00 PM')
+    end
+
+    it 'keeps the wall-clock time when stagemgr sends another offset' do
+      order = FactoryBot.create(:order, performance_time: '2000-01-01T19:30:00-05:00')
+      expect(order.reload.performance_time.strftime('%H:%M')).to eq('19:30')
+    end
+
+    it 'treats an unparseable time as missing' do
+      expect(FactoryBot.build(:order, performance_time: 'soon').performance_time).to be_nil
+    end
+
+    it 'stores the time of day as sent' do
+      order = FactoryBot.create(:order, performance_time: '2000-01-01T19:00:00.000+00:00')
+      expect(order.read_attribute_before_type_cast(:performance_time).to_s).to start_with('2000-01-01 19:00')
+    end
+  end
 end
