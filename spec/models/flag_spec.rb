@@ -14,10 +14,10 @@ RSpec.describe Flag do
   end
 
   it 'refuses a registry whose icon file is missing' do
-    registry = Rails.root.join('tmp/flags_missing_icon.yml')
-    File.write(registry, { 'ghost' => { 'icon' => 'config/flag_icons/ghost.bmp' } }.to_yaml)
-    expect { Flag.load_registry(registry) }.to raise_error(ArgumentError, /missing icon files .*ghost\.bmp/)
-  ensure
-    File.delete(registry) if File.exist?(registry)
+    Tempfile.create(['flags', '.yml']) do |registry|
+      registry.write({ 'ghost' => { 'icon' => 'config/flag_icons/ghost.bmp' } }.to_yaml)
+      registry.flush
+      expect { Flag.load_registry(registry.path) }.to raise_error(ArgumentError, /missing icon files .*ghost\.bmp/)
+    end
   end
 end

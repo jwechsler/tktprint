@@ -128,8 +128,9 @@ RSpec.describe PrintBatchProcessorJob, type: :job do
       expect(Rails.logger).to receive(:info).with("Printing 2 orders in batch #{batch.batch_id}")
       
       orders.first(2).each do |order|
-        expect(Rails.logger).to receive(:info).with("Printing order #{order.id} (sequence #{order.batch_sequence})")
-        expect(Rails.logger).to receive(:info).with("Successfully printed order #{order.id}")
+        expect(Rails.logger).to receive(:info)
+          .with("Printing order #{order.remote_id} - #{order.last_name} (sequence #{order.batch_sequence})")
+        expect(Rails.logger).to receive(:info).with("Successfully printed order #{order.remote_id} - #{order.last_name}")
       end
       
       job.send(:process_batch, batch)
@@ -161,7 +162,7 @@ RSpec.describe PrintBatchProcessorJob, type: :job do
       end
 
       it 'marks failed orders with error' do
-        expect(Rails.logger).to receive(:error).with("Failed to print order #{orders.first.id}")
+        expect(Rails.logger).to receive(:error).with("Failed to print order #{orders.first.remote_id} - #{orders.first.last_name}")
         
         job.send(:process_batch, batch)
         
@@ -322,6 +323,15 @@ RSpec.describe PrintBatchProcessorJob, type: :job do
   end
 
   describe '.perform_later (singleton behavior)' do
+    # These examples check the de-duplication query against real Delayed::Job rows, so jobs
+    # must be queued; config/initializers/delayed_job_config.rb runs them inline in test
+    around do |example|
+      Delayed::Worker.delay_jobs = true
+      example.run
+    ensure
+      Delayed::Worker.delay_jobs = false
+    end
+
     let!(:ready_batch) { FactoryBot.create(:print_batch, :ready) }
 
     context 'when no job is queued' do
