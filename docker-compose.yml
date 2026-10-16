@@ -15,7 +15,6 @@ services:
       - .:/app:cached
       - bundle_cache:/usr/local/bundle
       - db_ready:/tmp
-      - ./config/printer.yml.${PRINTER_CONFIG:-test}:/app/config/printer.yml:ro
     ports:
       - "3000:3000"
     environment:
@@ -53,7 +52,6 @@ services:
       - .:/app:cached
       - bundle_cache:/usr/local/bundle
       - db_ready:/tmp
-      - ./config/printer.yml.${PRINTER_CONFIG:-test}:/app/config/printer.yml:ro
     environment:
       - RAILS_ENV=${RAILS_ENV:-development}
       - TZ=${TZ:-America/Chicago}
@@ -101,13 +99,14 @@ services:
     networks:
       - tktprint_network
 
-  # Virtual Boca printer for test mode (./start-printer.sh -m test).
+  # Virtual Boca printer. start-printer.sh starts it (profile virtual-printer) when this
+  # machine's config/printer.yml sends the current RAILS_ENV to address "boca_printer".
   # Listens on 9100 like a real Boca and renders every ticket the app prints
   # to a sequentially numbered PDF (plus the raw .fgl and an index.jsonl line)
   # in ./tmp/printed_tickets. See https://github.com/jwechsler/fgl-pdf
   boca_printer:
     profiles:
-      - test
+      - virtual-printer
     build:
       context: https://github.com/jwechsler/fgl-pdf.git#${FGL_PDF_REF:-main}
     container_name: tktprint_printer

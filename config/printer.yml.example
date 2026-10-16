@@ -1,7 +1,24 @@
-# config/printer.yml
-ticket_printer_1:
-  # Use localhost for testing
-  address: "localhost"
-  port: 9100
-  logo: "public/logo.bmp"
-  
+# Printer for this machine, by RAILS_ENV. Copy to config/printer.yml (gitignored);
+# start-printer.sh does that on first run. The app reads the RAILS_ENV section, else
+# production. Each machine sets its own addresses:
+# - a development machine prints development to the virtual Boca ("boca_printer"),
+#   which renders tickets to PDFs in tmp/printed_tickets/
+# - the box office machine points every section at the real Boca, so it prints real
+#   tickets whatever RAILS_ENV it runs
+development:
+  ticket_printer_1:
+    address: "boca_printer"
+    port: 9100
+    logo: "public/logo.bmp.example"
+
+# Specs force localhost (spec/rails_helper.rb): nothing is sent
+test:
+  ticket_printer_1:
+    address: "localhost"
+    port: 9100
+
+production:
+  ticket_printer_1:
+    address: "192.168.1.100"  # the real Boca's IP
+    port: 9100
+    logo: "public/logo.bmp"

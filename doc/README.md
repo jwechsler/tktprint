@@ -79,8 +79,9 @@ A Docker-based development environment is available that replicates the producti
 #### Quick Start
 
 ```bash
-# Start web, worker and the virtual Boca printer (PDFs in tmp/printed_tickets/)
-./start-printer.sh -m test
+# Start web, worker and (when config/printer.yml sends development to "boca_printer")
+# the virtual Boca printer, which renders tickets to PDFs in tmp/printed_tickets/
+./start-printer.sh
 
 # View logs for all services
 ./bin/docker-startup logs
@@ -105,7 +106,7 @@ A Docker-based development environment is available that replicates the producti
 
 #### Testing Printer Communication
 
-1. Start the services: `./start-printer.sh -m test`
+1. Start the services: `./start-printer.sh`
 2. Create a test order:
    ```bash
    curl -X POST http://localhost:3000/orders.json \

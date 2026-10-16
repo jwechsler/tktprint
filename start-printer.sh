@@ -8,12 +8,16 @@
 # Options:
 #   -d, --detached     Run services in background (default)
 #   -f, --foreground   Run services in foreground
-#   -m, --mode MODE    Set printer mode: "live" or "test" (default based on RAILS_ENV)
 #   -h, --help         Show this help message
+#
+# Where tickets print comes from this machine's config/printer.yml, by RAILS_ENV
+# (see config/printer.yml.example). When that address is "boca_printer", the
+# virtual Boca printer starts too and tickets render to PDFs in tmp/printed_tickets/.
 
 # Default values
 DETACHED=true
-MODE=""
+PRINTER_CONFIG_FILE="config/printer.yml"
+VIRTUAL_PRINTER_ADDRESS="boca_printer"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -27,7 +31,8 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -m|--mode)
-            MODE="$2"
+            # Modes are gone; keep old commands (start-printer.sh -m live) working
+            echo "Note: -m $2 is ignored; the printer comes from $PRINTER_CONFIG_FILE by RAILS_ENV."
             shift 2
             ;;
         -h|--help)
@@ -40,9 +45,10 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  -d, --detached      Run services in background (default)"
             echo "  -f, --foreground    Run services in foreground"
-            echo "  -m, --mode MODE     Set printer mode: 'live' or 'test'"
-            echo "                      Default: 'live' if RAILS_ENV=production, otherwise 'test'"
             echo "  -h, --help          Show this help message"
+            echo ""
+            echo "The printer comes from $PRINTER_CONFIG_FILE for the current RAILS_ENV."
+            echo "If its address is \"$VIRTUAL_PRINTER_ADDRESS\", the virtual Boca printer starts as well."
             exit 0
             ;;
         *)
@@ -56,21 +62,6 @@ done
 # Set RAILS_ENV if not already set (defaults to development)
 if [ -z "$RAILS_ENV" ]; then
     export RAILS_ENV="development"
-fi
-
-# Determine default mode based on RAILS_ENV if not specified
-if [ -z "$MODE" ]; then
-    if [ "$RAILS_ENV" = "production" ]; then
-        MODE="live"
-    else
-        MODE="test"
-    fi
-fi
-
-# Validate mode
-if [ "$MODE" != "live" ] && [ "$MODE" != "test" ]; then
-    echo "Error: Invalid mode '$MODE'. Must be 'live' or 'test'"
-    exit 1
 fi
 
 # Check if docker compose is available (V2 syntax)
@@ -89,15 +80,41 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
-# Setup printer configuration based on mode
+# Printer address for RAILS_ENV, read the way config/application.rb does: the RAILS_ENV
+# section, else the production section, else a flat file's ticket_printer_1
+printer_address() {
+    local section
+    for section in "$RAILS_ENV" production ""; do
+        local address
+        address=$(awk -v want="$section" '
+            /^[^[:space:]#][^:]*:/ { current = $1; sub(/:$/, "", current) }
+            (want == "" || current == want) && $1 == "address:" {
+                gsub(/["\047]/, "", $2); print $2; exit
+            }' "$PRINTER_CONFIG_FILE")
+        if [ -n "$address" ]; then
+            echo "$address"
+            return
+        fi
+    done
+}
+
+if [ ! -f "$PRINTER_CONFIG_FILE" ]; then
+    echo "No $PRINTER_CONFIG_FILE yet: creating it from config/printer.yml.example."
+    echo "Edit it to set this machine's printer (development prints PDFs by default)."
+    cp config/printer.yml.example "$PRINTER_CONFIG_FILE"
+fi
+
+PRINTER_ADDRESS=$(printer_address)
+if [ -z "$PRINTER_ADDRESS" ]; then
+    echo "Error: no printer address for RAILS_ENV=$RAILS_ENV in $PRINTER_CONFIG_FILE"
+    exit 1
+fi
+
 echo "=== TKTprint Service Startup ==="
 echo "Working directory: $SCRIPT_DIR"
 echo "Rails environment: $RAILS_ENV"
-echo "Printer mode: $MODE"
+echo "Printer: $PRINTER_ADDRESS (from $PRINTER_CONFIG_FILE)"
 echo ""
-
-# Export environment variables for docker-compose
-export PRINTER_CONFIG="$MODE"
 
 # Keep SECRET_KEY_BASE across runs; generate one on first start
 SECRET_KEY_BASE=$(grep -s '^SECRET_KEY_BASE=' .env | cut -d= -f2-)
@@ -110,27 +127,12 @@ FGL_PDF_REF=${FGL_PDF_REF:-$(grep -s '^FGL_PDF_REF=' .env | cut -d= -f2-)}
 # Create .env file for docker-compose to read
 cat > .env << EOF
 RAILS_ENV=$RAILS_ENV
-PRINTER_CONFIG=$PRINTER_CONFIG
 SECRET_KEY_BASE=$SECRET_KEY_BASE
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 EOF
 [ -n "$BOCA_FONT_DIR" ] && echo "BOCA_FONT_DIR=$BOCA_FONT_DIR" >> .env
 [ -n "$FGL_PDF_REF" ] && echo "FGL_PDF_REF=$FGL_PDF_REF" >> .env
-
-# Copy the appropriate printer configuration
-PRINTER_SOURCE="config/printer.yml.$MODE"
-PRINTER_DEST="config/printer.yml"
-
-if [ ! -f "$PRINTER_SOURCE" ]; then
-    echo "Error: Printer configuration file not found: $PRINTER_SOURCE"
-    exit 1
-fi
-
-echo "Copying printer configuration from $PRINTER_SOURCE to $PRINTER_DEST..."
-cp "$PRINTER_SOURCE" "$PRINTER_DEST"
-
-echo ""
 
 # Stop any running tktprint services (including orphaned containers)
 echo "Stopping existing tktprint services..."
@@ -143,15 +145,14 @@ docker rm tktprint_web tktprint_worker tktprint_printer tktprint_db_setup 2>/dev
 
 echo ""
 
-# Start services
-# Set COMPOSE_PROFILES based on mode
-if [ "$MODE" = "test" ]; then
-    export COMPOSE_PROFILES=test
+# Start services, with the virtual printer only when this machine prints to it
+if [ "$PRINTER_ADDRESS" = "$VIRTUAL_PRINTER_ADDRESS" ]; then
+    export COMPOSE_PROFILES=virtual-printer
     mkdir -p tmp/printed_tickets tmp/fonts
     echo "Starting services with virtual Boca printer (PDFs in tmp/printed_tickets/)..."
 else
     export COMPOSE_PROFILES=""
-    echo "Starting services for live printer (no virtual printer)..."
+    echo "Starting services for the printer at $PRINTER_ADDRESS (no virtual printer)..."
 fi
 
 # Temporarily rename override file if in production mode
@@ -192,7 +193,7 @@ if [ "$DETACHED" = true ]; then
     echo "To view logs, use:"
     echo "  ./show-tktprint-logs.sh -f     # Follow web logs"
     echo "  docker compose logs -f worker  # Follow worker logs"
-    if [ "$MODE" = "test" ]; then
+    if [ "$PRINTER_ADDRESS" = "$VIRTUAL_PRINTER_ADDRESS" ]; then
         echo "  docker compose logs -f boca_printer  # Follow virtual printer logs"
         echo "  ls tmp/printed_tickets/              # Printed tickets as PDFs"
     fi
