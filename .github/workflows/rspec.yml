@@ -1,0 +1,36 @@
+name: RSpec
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rspec-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rspec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RAILS_ENV: test
+      BUNDLE_WITHOUT: development
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ruby version from .ruby-version; caches installed gems
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up the test database
+        run: bundle exec rails db:create db:schema:load
+
+      # rails_helper sets the printer (localhost: nothing is sent) and the API login,
+      # so the gitignored config/printer.yml and config/authorization.yml aren't needed
+      - name: Run specs
+        run: bundle exec rspec --format progress
