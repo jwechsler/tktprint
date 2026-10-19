@@ -166,6 +166,12 @@ class Printer
   end
 
   # The stub is in resident OCR fonts, so its customer text is ASCII (accents dropped)
+  # Stub warning banners. RECEIPT sits right under the patron code (the receipt's flag icons
+  # line up with it); on a ticket the OCR tracking line takes that spot, so REPRINT goes
+  # below it, clear of the logo
+  RECEIPT_BANNER_COLUMN = 1490
+  REPRINT_BANNER_COLUMN = 1460
+
   def stub(order, class_code = nil, receipt=false)
     name = truncated_name(Fgl::resident_text(order.first_name), Fgl::resident_text(order.last_name))
     fgl = Fgl::at(10, 1665) + Fgl::rotate_right + Fgl::font_size(Fgl::OCRA) + Fgl::scale(4, 4) + name
@@ -175,11 +181,13 @@ class Printer
         fgl << ' ' + Fgl::resident_text(class_code) unless class_code.nil?
         if receipt
           warntext = "RECEIPT"
+          banner_column = RECEIPT_BANNER_COLUMN
         elsif (order.reprint_count || 0) > 0
           warntext = "REPRINT"
+          banner_column = REPRINT_BANNER_COLUMN
         end
         unless warntext.blank?
-          fgl << Fgl::at(10,1490) + Fgl::scale(1,1) + Fgl::font_size(Fgl::VERDANA_BOLD, 14) + Fgl::centered_text(warntext,530)
+          fgl << Fgl::at(10, banner_column) + Fgl::scale(1,1) + Fgl::font_size(Fgl::VERDANA_BOLD, 14) + Fgl::centered_text(warntext,530)
         end
 
     fgl

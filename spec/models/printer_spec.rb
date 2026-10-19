@@ -93,6 +93,29 @@ RSpec.describe Printer do
     end
   end
 
+  describe 'stub banners' do
+    it 'puts REPRINT below the tracking line on a reprinted ticket' do
+      order = FactoryBot.build(:order, reprint_count: 1)
+      expect(printer.stub(order, 'GA')).to include("<RC10,#{Printer::REPRINT_BANNER_COLUMN}><HW1,1><RTF4,14><CTR530>~REPRINT~")
+    end
+
+    it 'keeps REPRINT clear of the OCR tracking line printed at column 1496' do
+      banner_height = 60 # VERDANA_BOLD 14pt, drawn toward lower columns
+      expect(Printer::REPRINT_BANNER_COLUMN).to be <= 1496 - 30
+      expect(Printer::REPRINT_BANNER_COLUMN - banner_height).to be > 1370 # logo ends near 1370
+    end
+
+    it 'keeps RECEIPT under the patron code, where the flag icons line up' do
+      order = FactoryBot.build(:order, reprint_count: 1)
+      expect(printer.stub(order, nil, true)).to include("<RC10,#{Printer::RECEIPT_BANNER_COLUMN}><HW1,1><RTF4,14><CTR530>~RECEIPT~")
+      expect(printer.stub(order, nil, true)).not_to include('REPRINT')
+    end
+
+    it 'prints no banner on a first printing' do
+      expect(printer.stub(FactoryBot.build(:order, reprint_count: 0), 'GA')).not_to include('<CTR530>')
+    end
+  end
+
   describe 'tickets' do
     it 'never carries flag icons on the stub' do
       order = FactoryBot.build(:order, flags: %w[star])
