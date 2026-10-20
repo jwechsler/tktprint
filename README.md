@@ -117,7 +117,6 @@ bundle exec rspec
 ```
 
 Specs force the printer address to `localhost`, so nothing is ever sent to a printer.
-GitHub Actions runs the suite on every push.
 
 ## License
 
