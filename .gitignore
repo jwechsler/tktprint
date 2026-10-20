@@ -8,3 +8,6 @@ config/printer.yml
 log/*.log
 tmp/
 .env
+
+# macOS Finder metadata, at any depth
+.DS_Store
