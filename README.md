@@ -5,12 +5,13 @@ A small Rails API that turns JSON orders into physical theater tickets and recei
 Language) over a raw TCP socket on port 9100, queues print jobs with Delayed Job, and keeps
 its own SQLite database so it runs happily on a Raspberry Pi in the box office.
 
-Built for [Theater Wit](https://www.theaterwit.org) in Chicago, where the ticketing system
-posts each sale here and the tickets come out of the printer at the counter.
+Built by [Theater Wit](https://www.theaterwit.org) in Chicago as a component of
+[stagemgr](https://github.com/jwechsler/stagemgr), its ticketing system. Stagemgr posts each
+sale here and the tickets come out of the printer at the counter.
 
 ## How it works
 
-1. The ticketing system `POST`s an order (patron, performance, line items, payments, tickets).
+1. Stagemgr `POST`s an order (patron, performance, line items, payments, tickets).
 2. An order whose status is `Unprinted` queues a print job. Delayed Job waits one second to
    batch any immediate updates, then prints.
 3. `Printer` opens a socket to the Boca, sends the FGL for each ticket (barcode, logo, stub)
@@ -80,7 +81,7 @@ and use the `.json` format.
 | `POST` | `/orders` | Create an order (prints if status is `Unprinted`) |
 | `GET` | `/orders/:id` | Show an order |
 | `PUT` | `/orders/:id` | Update an order (prints if status becomes `Unprinted`) |
-| `GET` | `/orders/:id/find_by_remote` | Look up by the ticketing system's `remote_id` |
+| `GET` | `/orders/:id/find_by_remote` | Look up by the stagemgr `remote_id` |
 | `POST` | `/orders/:id/print` | Force a reprint |
 | `PUT` | `/orders/:id/reprint` | Reprint, replacing order data, tickets and flags if sent |
 | `GET` | `/tickets?order_id=:id` | List an order's tickets |
