@@ -8,3 +8,4 @@ config/printer.yml
 log/*.log
 tmp/
 .env
+script/*.bmp
