@@ -24,6 +24,7 @@ services:
       - TZ=${TZ:-America/Chicago}
       - DATABASE_URL=sqlite3:db/${RAILS_ENV:-development}.sqlite3
       - SECRET_KEY_BASE=${SECRET_KEY_BASE:-}
+      - TKTPRINT_HOSTS=${TKTPRINT_HOSTS:-}
       - RAILS_LOG_TO_STDOUT=true
     depends_on:
       db_setup:

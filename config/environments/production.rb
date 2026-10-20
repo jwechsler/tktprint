@@ -77,12 +77,10 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
-  # Allow production domain for host authorization
-  config.hosts << "www.theaterwit.org"
-  config.hosts << "tktprint.local"
-  config.hosts << "ticket.theaterwit.org"
-  config.hosts << "192.168.0.143"
-  config.hosts << "71.194.184.163"
-  config.hosts << "localhost"
+  # Host authorization: TKTPRINT_HOSTS is a comma-separated list of the hostnames and
+  # IPs this server answers to (set in .env; docker-compose passes it through). When it
+  # is unset, Rails' default applies and every Host header is accepted.
+  allowed_hosts = ENV.fetch("TKTPRINT_HOSTS", "").split(",").map(&:strip).reject(&:empty?)
+  config.hosts.concat(allowed_hosts)
 
 end

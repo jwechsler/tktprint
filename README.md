@@ -57,6 +57,11 @@ bundle exec bin/delayed_job start
 In production also export `SECRET_KEY_BASE`, `RAILS_ENV=production`, and optionally
 `PORT`, `WEB_CONCURRENCY` and `RAILS_MAX_THREADS`.
 
+Set `TKTPRINT_HOSTS` to the comma-separated hostnames and IPs the server answers to
+(for example `tickets.example.org,192.168.1.20`). Rails rejects requests for any other
+`Host`. Leave it unset to accept every host. Under Docker, put it in `.env`; the
+compose files pass it to the web container and `start-printer.sh` keeps it across runs.
+
 ## Docker and the virtual printer
 
 `./start-printer.sh` starts the web server and worker in Docker. When `config/printer.yml`

@@ -120,9 +120,10 @@ echo ""
 SECRET_KEY_BASE=$(grep -s '^SECRET_KEY_BASE=' .env | cut -d= -f2-)
 SECRET_KEY_BASE=${SECRET_KEY_BASE:-$(openssl rand -hex 64)}
 
-# Keep virtual printer settings across runs unless set in the shell
+# Keep virtual printer settings and the allowed-hosts list across runs unless set in the shell
 BOCA_FONT_DIR=${BOCA_FONT_DIR:-$(grep -s '^BOCA_FONT_DIR=' .env | cut -d= -f2-)}
 FGL_PDF_REF=${FGL_PDF_REF:-$(grep -s '^FGL_PDF_REF=' .env | cut -d= -f2-)}
+TKTPRINT_HOSTS=${TKTPRINT_HOSTS:-$(grep -s '^TKTPRINT_HOSTS=' .env | cut -d= -f2-)}
 
 # Create .env file for docker-compose to read
 cat > .env << EOF
@@ -133,6 +134,7 @@ HOST_GID=$(id -g)
 EOF
 [ -n "$BOCA_FONT_DIR" ] && echo "BOCA_FONT_DIR=$BOCA_FONT_DIR" >> .env
 [ -n "$FGL_PDF_REF" ] && echo "FGL_PDF_REF=$FGL_PDF_REF" >> .env
+[ -n "$TKTPRINT_HOSTS" ] && echo "TKTPRINT_HOSTS=$TKTPRINT_HOSTS" >> .env
 
 # Stop any running tktprint services (including orphaned containers)
 echo "Stopping existing tktprint services..."
